@@ -22,7 +22,7 @@ multiplier = Multiplier()
 
 msg_hello = '''
 Привет {user_name}! 
-I'm {bot_name}.
+Я - {bot_name}.
 Я помогу тебе выучить таблицу умножения. \n 
 Я умею выполнять следующие комманды: \n'''
 
@@ -50,7 +50,7 @@ def start(bot, update):
 
 def study(bot, update):
     msg = multiplier.get_next_message()
-
+    print(update.message.chat_id)
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg.format(
@@ -88,13 +88,14 @@ def statistic(bot, update):
 
 @run_async
 def process(bot, update):
+    print(multiplier)
     # сформировать сообщение ответа
     replay = update.message.text
 
     msg = multiplier.get_next_message(replay)
     if msg.find('ценка') != -1:
         msg = msg + msg_continuation + msg_command_list
-    print(msg, msg.find('ценка'))
+    # print(msg, msg.find('ценка'))
 
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg.format(replay=replay))
