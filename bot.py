@@ -92,18 +92,36 @@ def statistic(bot, update):
 
 @run_async
 def process(bot, update):
-    # print(multiplier)
-    # сформировать сообщение ответа
+    chat_id = update.message.chat_id
     replay = update.message.text
+    multiplier = get_multiplier_on_chat_id(chat_id)
+    next_task = ''
 
-    msg = multiplier_dict[update.message.chat_id].get_next_message(replay)
-    # msg = multiplier.get_next_message(replay)
-    if msg.find('ценка') != -1:
-        msg = msg + msg_continuation + msg_command_list
-    # print(msg, msg.find('ценка'))
+    # print(chat_id, replay, multiplier)
 
+    if multiplier is None or not multiplier._is_run:
+        msg = msg_continuation + msg_command_list
+    elif replay.isdigit():
+        if multiplier.response(replay):
+            msg = 'Верно\nСколько будет {}? '
+        else:
+            msg = 'Не верно\nСколько будет {}? '
+        multiplier.set_input_str()
+        next_task = multiplier.get_input_str()
+
+    else:
+        msg = 'Ответ не является числом.\nСколько будет {}? '
+        multiplier.set_input_str()
+        next_task = multiplier.get_input_str()
+
+    # Send the message
     bot.send_message(chat_id=update.message.chat_id,
-                     text=msg.format(replay=replay))
+                     text=msg.format(next_task))
+
+
+def get_multiplier_on_chat_id(chat_id=None):
+    if chat_id in multiplier_dict:
+        return multiplier_dict[chat_id]
 
 
 def main():
