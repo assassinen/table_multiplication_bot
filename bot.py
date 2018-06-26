@@ -80,7 +80,7 @@ def setting(bot, update):
                          bot_name=bot.name))
 
 def statistic(bot, update):
-    msg = 'Извините, данная комманда пока не доступна, {bot_id}'
+    msg = 'Извините, данная комманда пока не доступна, {chat_id}'
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
