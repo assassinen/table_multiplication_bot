@@ -87,7 +87,8 @@ def statistic(bot, update):
                      text=msg.format(
                          user_name=update.message.from_user.first_name,
                          bot_name=bot.name,
-                         bot_id = bot.id))
+                         bot_id = bot.id,
+                         chat_id=update.message.chat_id))
 
 @run_async
 def process(bot, update):
