@@ -24,7 +24,7 @@ msg_hello = '''
 Я - {bot_name}.
 Я помогу тебе выучить таблицу умножения. \n 
 Я умею выполнять следующие комманды: \n'''
-msg_task = 'Cколько будет {next_task}?\n'
+msg_task = 'Cколько будет {}?\n'
 msg_grade = 'Оценка - {}\n\n'
 msg_true_response = 'Верно\n'
 msg_false_response = 'Не верно\n'
@@ -49,16 +49,36 @@ def start(bot, update):
                          user_name=update.message.from_user.first_name,
                          bot_name=bot.name))
 
+# def study(bot, update):
+#     if update.message.chat_id not in multiplier_dict:
+#         multiplier_dict[update.message.chat_id] = Multiplier()
+#     msg = multiplier_dict[update.message.chat_id].get_next_message()
+#     # msg = multiplier.get_next_message()
+#
+#     # Send the message
+#     bot.send_message(chat_id=update.message.chat_id,
+#                      text=msg.format(
+#                          user_name=update.message.from_user.first_name,
+#                          bot_name=bot.name))
+
 def study(bot, update):
-    if update.message.chat_id not in multiplier_dict:
-        multiplier_dict[update.message.chat_id] = Multiplier()
-    msg = multiplier_dict[update.message.chat_id].get_next_message()
-    # msg = multiplier.get_next_message()
+    chat_id = update.message.chat_id
+    multiplier = get_multiplier_on_chat_id(chat_id)
+
+    if multiplier is None:
+        multiplier = Multiplier()
+        multiplier_dict[chat_id] = multiplier
+    elif multiplier._is_run == True:
+        multiplier.reset()
+        msg = msg_reset + msg_continuation + msg_command_list
+    else:
+        multiplier._is_run = True
+        multiplier.set_input_str()
+        msg = msg_task.format(multiplier.get_input_str())
+
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
-                     text=msg.format(
-                         user_name=update.message.from_user.first_name,
-                         bot_name=bot.name))
+                     text=msg)
 
 def reset(bot, update):
     chat_id = update.message.chat_id
@@ -119,7 +139,7 @@ def process(bot, update):
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
-                     text=msg.format(next_task=next_task))
+                     text=msg.format(next_task))
 
 
 def get_next_message(multiplier):

@@ -37,23 +37,14 @@ class Multiplier:
         self.set_input_str()
 
     def response(self, replay = None):
-        if replay.isdigit():
-            replay = int(replay)
-            msg = self.resolution(replay)
-        else:
-            self.set_input_str()
-            msg = "Ответ не является числом."
-        return msg
-
-    def resolution(self, replay = None):
-        if replay == self.x * self.y:
+        if int(replay) == self.x * self.y:
             self.update_input_list()
             self.rez[0] = self.rez[0] + 1
-            msg = 'Верно.'
+            msg = True
         else:
             self.update_input_list()
             self.rez[1] = self.rez[1] + 1
-            msg = 'Не верно.'
+            msg = False
         return msg
 
     def reset(self):
@@ -65,22 +56,9 @@ class Multiplier:
         self.rez = [0, 0, 0]
 
     def grade(self):
-        msg = "Оценка - " + str(int(5 * self.rez[0] / (len(self._input_list) - 1))) + '\n'
+        msg = str(int(5 * self.rez[0] / (len(self._input_list) - 1)))
         return msg
 
-    def get_next_message(self, replay = None):
-        if self._is_run:
-            msg = self.response(replay) + '\n'
-            if len(self._input_list) > self._number_steps:
-                msg = msg + self.grade()
-                self.reset()
-            else:
-                msg = msg + 'Сколько будет {}? '.format(self.get_input_str())
-        else:
-            self._is_run = True
-            self.set_input_str()
-            msg = 'Сколько будет {}? '.format(self.get_input_str())
-        return msg + '\n'
 
 
 def test():
