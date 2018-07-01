@@ -21,6 +21,7 @@ class Multiplier():
         self._stop = chat_id_settings['stop']
         self._number_steps = chat_id_settings['number_steps']
         self._timeout = chat_id_settings['timeout']
+        # print(self._start)
 
     def gen_input_str(self):
         x = random.randint(self._start, self._stop)

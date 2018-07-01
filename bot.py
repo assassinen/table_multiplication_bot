@@ -91,6 +91,7 @@ def setting(bot, update):
     chat_id = update.message.chat_id
     replay = update.message.text.split(' ')[1:]
     if settings.set_settings(chat_id, *replay):
+        multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
         msg = 'Настройки применены.\n'
     else:
         msg = 'Что-то пошло не так.\n'
