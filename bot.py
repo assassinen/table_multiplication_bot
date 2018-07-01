@@ -9,8 +9,9 @@ from configparser import ConfigParser
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 from multiplier import Multiplier
+from settings import Settings
 
-
+settings = Settings()
 config = ConfigParser()
 config.read_file(open('config.ini'))
 
@@ -40,35 +41,25 @@ msg_command_list = '''
 
 # Welcome message
 def start(bot, update):
-    multiplier_dict[update.message.chat_id] = Multiplier()
+    chat_id = update.message.chat_id
+    multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
     msg = msg_hello + msg_command_list
 
     # Send the message
-    bot.send_message(chat_id=update.message.chat_id,
+    bot.send_message(chat_id=chat_id,
                      text=msg.format(
                          user_name=update.message.from_user.first_name,
                          bot_name=bot.name))
 
-# def study(bot, update):
-#     if update.message.chat_id not in multiplier_dict:
-#         multiplier_dict[update.message.chat_id] = Multiplier()
-#     msg = multiplier_dict[update.message.chat_id].get_next_message()
-#     # msg = multiplier.get_next_message()
-#
-#     # Send the message
-#     bot.send_message(chat_id=update.message.chat_id,
-#                      text=msg.format(
-#                          user_name=update.message.from_user.first_name,
-#                          bot_name=bot.name))
-
 def study(bot, update):
     chat_id = update.message.chat_id
-    multiplier = get_multiplier_on_chat_id(chat_id)
+    multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
 
     if multiplier is None:
-        multiplier = Multiplier()
+        multiplier = Multiplier(chat_id=chat_id)
         multiplier_dict[chat_id] = multiplier
-    elif multiplier._is_run == True:
+
+    if multiplier._is_run == True:
         multiplier.reset()
         msg = msg_reset + msg_continuation + msg_command_list
     else:
@@ -97,7 +88,14 @@ def reset(bot, update):
                          bot_name=bot.name))
 
 def setting(bot, update):
-    msg = 'Извините, данная комманда пока не доступна'
+    chat_id = update.message.chat_id
+    replay = update.message.text.split(' ')[1:]
+    if settings.set_settings(chat_id, *replay):
+        msg = 'Настройки применены.\n'
+    else:
+        msg = 'Что-то пошло не так.\n'
+
+    msg = msg + msg_continuation + msg_command_list
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
@@ -154,6 +152,20 @@ def get_next_message(multiplier):
 def get_multiplier_on_chat_id(chat_id=None):
     if chat_id in multiplier_dict:
         return multiplier_dict[chat_id]
+
+def get_multiplier(chat_id=None):
+    if not is_multiplier:
+        set_multiplier(chat_id)
+    return multiplier_dict[chat_id]
+
+def is_multiplier(chat_id):
+    if chat_id in multiplier_dict:
+        return True
+
+def set_multiplier(chat_id):
+    if is_multiplier:
+        multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
+
 
 
 def main():

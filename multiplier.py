@@ -1,21 +1,26 @@
 #/Library/Frameworks/Python.framework/Versions/3.5/bin/python3
 
 import random
+from settings import Settings
 
+class Multiplier():
 
-class Multiplier:
-
-    def __init__(self, start = 4, stop = 4, number_steps = 5, timeout = 10):
-        self._start = start
-        self._stop = stop
-        self._number_steps = number_steps
-        self._timeout = timeout
+    def __init__(self, chat_id=None):
+        self.settings(chat_id)
         self._input_list = {None}
         self._input_str = None
         self.x = None
         self.y = None
         self._is_run = False
         self.rez = [0, 0, 0]
+
+    def settings(self, chat_id=None):
+        settings = Settings()
+        chat_id_settings = settings.get_settings(chat_id)
+        self._start = chat_id_settings['start']
+        self._stop = chat_id_settings['stop']
+        self._number_steps = chat_id_settings['number_steps']
+        self._timeout = chat_id_settings['timeout']
 
     def gen_input_str(self):
         x = random.randint(self._start, self._stop)
@@ -62,7 +67,12 @@ class Multiplier:
 
 
 def test():
-    multiplier = Multiplier()
+    # settings = Settings()
+    # set = settings.get_settings()
+    # print(set)
+    multiplier = Multiplier(chat_id=379201876, kwargs=set)
+    # print()
+
     msg = ''
     while True:
         replay = input(msg)
