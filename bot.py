@@ -10,6 +10,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 from multiplier import Multiplier
 from settings import Settings
+import signal
 
 settings = Settings()
 config = ConfigParser()
@@ -18,6 +19,8 @@ config.read_file(open('config.ini'))
 # Create telegram poller with token from settings
 up = Updater(token=config['Telegram']['token'], workers=32)
 dispatcher = up.dispatcher
+job_queue = up.job_queue
+
 multiplier_dict = {}
 
 msg_hello = '''
@@ -38,6 +41,8 @@ msg_command_list = '''
 /setting - настройка
 /statistic - статистика обучения
 '''
+
+
 
 # Welcome message
 def start(bot, update):
@@ -65,7 +70,7 @@ def study(bot, update):
     else:
         multiplier._is_run = True
         multiplier.set_input_str()
-        msg = msg_task.format(multiplier.get_input_str())
+        msg = msg_task.format(multiplier.get_input_str(job_queue))
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
@@ -90,6 +95,10 @@ def reset(bot, update):
 def setting(bot, update):
     chat_id = update.message.chat_id
     replay = update.message.text.split(' ')[1:]
+    # print(len(replay))
+    # if len(replay) < 1:
+    #     msg = 'Текущие настройки таковы: {}.\n'.format(str(settings.get_settings(chat_id, *replay)))
+    #     print(msg)
     if settings.set_settings(chat_id, *replay):
         multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
         msg = 'Настройки применены.\n'
@@ -119,6 +128,7 @@ def statistic(bot, update):
 def process(bot, update):
     chat_id = update.message.chat_id
     replay = update.message.text
+
     multiplier = get_multiplier_on_chat_id(chat_id)
     next_task = ''
 
@@ -140,6 +150,15 @@ def process(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg.format(next_task))
 
+def time_out(bot, job):
+    # chat_id = update.message.chat_id
+
+    msg = 'Новый таск'
+    print(msg)
+    # bot.send_message(chat_id=update.message.chat_id,
+    #                  text=msg)
+
+
 
 def get_next_message(multiplier):
     if sum(multiplier.rez) < multiplier._number_steps:
@@ -148,7 +167,6 @@ def get_next_message(multiplier):
         grade = multiplier.grade()
         multiplier.reset()
         return msg_grade.format(grade) + msg_continuation + msg_command_list
-
 
 def get_multiplier_on_chat_id(chat_id=None):
     if chat_id in multiplier_dict:
@@ -177,10 +195,25 @@ def main():
     dispatcher.add_handler(CommandHandler("setting", setting))
     dispatcher.add_handler(CommandHandler("statistic", statistic))
     dispatcher.add_handler(MessageHandler(Filters.text, process))
+    # job_queue.run_once(time_out, 10)
 
     # Start the program
-    up.start_polling()
+    up.start_polling(timeout=500)
     up.idle()
 
 if __name__ == '__main__':
     main()
+
+
+
+# Доступные названия настроек:
+# link - стиль передачи ссылки на исходное сообщение
+# caption - стиль передачи подписи к изображению
+# brief - сокращение длинных постов
+#
+# Чтобы получить больше информации, используй команду
+# /setting название_настройки
+# Чтобы установить настройку:
+# /setting название_настройки новое_значение
+# Например:
+# /setting link none
