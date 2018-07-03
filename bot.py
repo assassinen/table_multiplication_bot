@@ -21,6 +21,7 @@ up = Updater(token=config['Telegram']['token'], workers=32)
 dispatcher = up.dispatcher
 job_queue = up.job_queue
 
+
 multiplier_dict = {}
 
 msg_hello = '''
@@ -58,11 +59,17 @@ def start(bot, update):
 
 def study(bot, update):
     chat_id = update.message.chat_id
-    multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
+    multiplier = get_multiplier(chat_id)
 
-    if multiplier is None:
-        multiplier = Multiplier(chat_id=chat_id)
-        multiplier_dict[chat_id] = multiplier
+
+    # multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
+    #
+    # if multiplier is None:
+    #     multiplier = Multiplier(chat_id=chat_id, job_queue=job_queue)
+    #     multiplier_dict[chat_id] = multiplier
+
+    # print(multiplier)
+    # print(multiplier.job_queue)
 
     if multiplier._is_run == True:
         multiplier.reset()
@@ -70,7 +77,7 @@ def study(bot, update):
     else:
         multiplier._is_run = True
         multiplier.set_input_str()
-        msg = msg_task.format(multiplier.get_input_str(job_queue))
+        msg = msg_task.format(multiplier.get_input_str())
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
@@ -173,7 +180,7 @@ def get_multiplier_on_chat_id(chat_id=None):
         return multiplier_dict[chat_id]
 
 def get_multiplier(chat_id=None):
-    if not is_multiplier:
+    if not is_multiplier(chat_id):
         set_multiplier(chat_id)
     return multiplier_dict[chat_id]
 
@@ -184,6 +191,7 @@ def is_multiplier(chat_id):
 def set_multiplier(chat_id):
     if is_multiplier:
         multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
+        # multiplier_dict[chat_id] = Multiplier(chat_id=chat_id, job_queue=job_queue)
 
 
 
