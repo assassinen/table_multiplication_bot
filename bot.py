@@ -18,7 +18,7 @@ config.read_file(open('config.ini'))
 # Create telegram poller with token from settings
 up = Updater(token=config['Telegram']['token'], workers=32)
 dispatcher = up.dispatcher
-
+job_queue = up.job_queue
 multiplier_dict = {}
 
 msg_hello = '''
@@ -30,6 +30,7 @@ msg_task = 'Cколько будет {}?\n'
 msg_grade = 'Оценка - {}\n\n'
 msg_true_response = 'Верно\n'
 msg_false_response = 'Не верно\n'
+msg_timeout_response = 'Слишком долго нет ответа.\n'
 msg_input_no_int = 'Ответ не является числом.\n'
 msg_continuation = 'Для продолжение используйте слейдующие комманды: \n'
 msg_reset = 'Предыдущие результаты онулированы.\n'
@@ -43,7 +44,7 @@ msg_command_list = '''
 # Welcome message
 def start(bot, update):
     chat_id = update.message.chat_id
-    multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
+    # multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
     msg = msg_hello + msg_command_list
 
     # Send the message
@@ -54,13 +55,9 @@ def start(bot, update):
 
 def study(bot, update):
     chat_id = update.message.chat_id
-    multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
+    multiplier = get_multiplier(chat_id=chat_id)
 
-    if multiplier is None:
-        multiplier = Multiplier(chat_id=chat_id)
-        multiplier_dict[chat_id] = multiplier
-
-    if multiplier._is_run == True:
+    if multiplier._is_run:
         multiplier.reset()
         msg = msg_reset + msg_continuation + msg_command_list
     else:
@@ -74,9 +71,9 @@ def study(bot, update):
 
 def reset(bot, update):
     chat_id = update.message.chat_id
-    multiplier = get_multiplier_on_chat_id(chat_id)
+    multiplier = get_multiplier(chat_id)
 
-    if multiplier is None or not multiplier._is_run:
+    if not multiplier._is_run:
         msg = msg_continuation + msg_command_list
     else:
         multiplier.reset()
@@ -117,21 +114,13 @@ def statistic(bot, update):
                          chat_id=update.message.chat_id))
 
 @run_async
-def process(bot, update, job_queue):
-
-    print(update.message.chat_id)
-    # bot.send_message(chat_id=update.message.chat_id,
-    #                  text='Setting a timer for 1 minute!')
-
-    # job_queue.run_once(callback_alarm, 10, context=update.message.chat_id)
-    # print(job_queue.jobs())
-
+def process(bot, update):
     chat_id = update.message.chat_id
     replay = update.message.text
-    multiplier = get_multiplier_on_chat_id(chat_id)
+    multiplier = get_multiplier(chat_id)
     next_task = ''
 
-    if multiplier is None or not multiplier._is_run:
+    if not multiplier._is_run:
         msg = msg_continuation + msg_command_list
     else:
         if replay.isdigit():
@@ -141,6 +130,7 @@ def process(bot, update, job_queue):
                 msg = msg_false_response + get_next_message(multiplier)
         else:
             msg = msg_input_no_int + msg_task
+            multiplier.step_run_time_reset()
 
         multiplier.set_input_str()
         next_task = multiplier.get_input_str()
@@ -149,6 +139,16 @@ def process(bot, update, job_queue):
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg.format(next_task))
 
+def callback_alarm(bot, job):
+    chart_id = job.context
+    multiplier = get_multiplier(chart_id)
+    if multiplier.timeout():
+        msg = msg_timeout_response + get_next_message(multiplier)
+        multiplier.set_input_str()
+        next_task = multiplier.get_input_str()
+
+        bot.send_message(chat_id=job.context,
+                         text=msg.format(next_task))
 
 def get_next_message(multiplier):
     if sum(multiplier.rez) < multiplier._number_steps:
@@ -158,35 +158,23 @@ def get_next_message(multiplier):
         multiplier.reset()
         return msg_grade.format(grade) + msg_continuation + msg_command_list
 
-
 def get_multiplier_on_chat_id(chat_id=None):
     if chat_id in multiplier_dict:
         return multiplier_dict[chat_id]
 
 def get_multiplier(chat_id=None):
-    if not is_multiplier:
+    if not is_multiplier(chat_id):
         set_multiplier(chat_id)
     return multiplier_dict[chat_id]
 
 def is_multiplier(chat_id):
-    if chat_id in multiplier_dict:
-        return True
+    return True if chat_id in multiplier_dict else False
 
 def set_multiplier(chat_id):
-    if is_multiplier:
-        multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
+    multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
+    job_queue.run_repeating(callback_alarm, interval=1, context=chat_id)
 
 
-
-def callback_alarm(bot, job):
-    bot.send_message(chat_id=job.context, text='BEEP')
-
-# def callback_timer(bot, update, job_queue):
-#     print(update.message.chat_id)
-#     bot.send_message(chat_id=update.message.chat_id,
-#                      text='Setting a timer for 1 minute!')
-
-    # job_queue.run_once(callback_alarm, 10, context=update.message.chat_id)
 
 
 def main():
@@ -197,11 +185,6 @@ def main():
     dispatcher.add_handler(CommandHandler("setting", setting))
     dispatcher.add_handler(CommandHandler("statistic", statistic))
     dispatcher.add_handler(MessageHandler(Filters.text, process))
-
-    # dispatcher.add_handler(CommandHandler("timer", callback_timer))
-    # dispatcher.add_handler(CommandHandler("timer", callback_timer, pass_job_queue=True))
-
-
 
     # Start the program
     up.start_polling()

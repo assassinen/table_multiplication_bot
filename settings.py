@@ -6,7 +6,7 @@ import json
 class Settings:
 
     def __init__(self):
-        self.settings = {'start': 4, 'stop': 4, 'number_steps': 10, 'timeout': 10}
+        self.settings = {'start': 4, 'stop': 4, 'number_steps': 5, 'timeout': 10}
         self.params_list = ['start', 'stop']
         self.settings_paht = 'settings.data'
 
