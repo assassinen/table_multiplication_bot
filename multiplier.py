@@ -21,7 +21,7 @@ class Multiplier():
         self._stop = chat_id_settings['stop']
         self._number_steps = chat_id_settings['number_steps']
         self._timeout = chat_id_settings['timeout']
-        # print(self._start)
+        self._step_run_time = self._timeout
 
     def gen_input_str(self):
         x = random.randint(self._start, self._stop)
@@ -43,6 +43,7 @@ class Multiplier():
         self.set_input_str()
 
     def response(self, replay = None):
+        self._step_run_time = self._timeout
         if int(replay) == self.x * self.y:
             self.update_input_list()
             self.rez[0] = self.rez[0] + 1
@@ -60,10 +61,25 @@ class Multiplier():
         self.y = None
         self._is_run = False
         self.rez = [0, 0, 0]
+        self.step_run_time_reset()
+
+    def step_run_time_reset(self):
+        self._step_run_time = self._timeout
 
     def grade(self):
         msg = str(int(5 * self.rez[0] / (len(self._input_list) - 1)))
         return msg
+
+    def timeout(self):
+        if self._is_run:
+            self._step_run_time -= 1
+        if self._step_run_time < 0:
+            self.update_input_list()
+            self.rez[2] = self.rez[2] + 1
+            self._step_run_time = self._timeout
+            return True
+        else:
+            return False
 
 
 
