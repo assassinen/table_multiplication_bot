@@ -10,18 +10,18 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from settings import Settings
 
-config = ConfigParser()
-config.read_file(open('config.ini'))
-
-# Create telegram poller with token from settings
-up = Updater(token=config['Telegram']['token'], workers=32)
-job_queue = up.job_queue
+# config = ConfigParser()
+# config.read_file(open('config.ini'))
+#
+# # Create telegram poller with token from settings
+# up = Updater(token=config['Telegram']['token'], workers=32)
+# job_queue = up.job_queue
 
 
 class Multiplier():
 
-    def __init__(self, chat_id=None, job_queue=None):
-        self.job_queue = job_queue
+    def __init__(self, chat_id=None):
+        # self.job_queue = job_queue
         self.chat_id = chat_id
         self.settings(chat_id)
         self._input_list = {None}
@@ -138,7 +138,7 @@ def get_next_message(multiplier):
 
 
 def test():
-    multiplier = Multiplier(chat_id=379201876, job_queue=job_queue)
+    multiplier = Multiplier(chat_id=379201876)
 
     # msg = ''
     multiplier.set_input_str()

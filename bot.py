@@ -10,7 +10,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 from multiplier import Multiplier
 from settings import Settings
-import signal
 
 settings = Settings()
 config = ConfigParser()
@@ -19,8 +18,6 @@ config.read_file(open('config.ini'))
 # Create telegram poller with token from settings
 up = Updater(token=config['Telegram']['token'], workers=32)
 dispatcher = up.dispatcher
-job_queue = up.job_queue
-
 
 multiplier_dict = {}
 
@@ -43,8 +40,6 @@ msg_command_list = '''
 /statistic - статистика обучения
 '''
 
-
-
 # Welcome message
 def start(bot, update):
     chat_id = update.message.chat_id
@@ -59,17 +54,11 @@ def start(bot, update):
 
 def study(bot, update):
     chat_id = update.message.chat_id
-    multiplier = get_multiplier(chat_id)
+    multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
 
-
-    # multiplier = get_multiplier_on_chat_id(chat_id=chat_id)
-    #
-    # if multiplier is None:
-    #     multiplier = Multiplier(chat_id=chat_id, job_queue=job_queue)
-    #     multiplier_dict[chat_id] = multiplier
-
-    # print(multiplier)
-    # print(multiplier.job_queue)
+    if multiplier is None:
+        multiplier = Multiplier(chat_id=chat_id)
+        multiplier_dict[chat_id] = multiplier
 
     if multiplier._is_run == True:
         multiplier.reset()
@@ -102,10 +91,6 @@ def reset(bot, update):
 def setting(bot, update):
     chat_id = update.message.chat_id
     replay = update.message.text.split(' ')[1:]
-    # print(len(replay))
-    # if len(replay) < 1:
-    #     msg = 'Текущие настройки таковы: {}.\n'.format(str(settings.get_settings(chat_id, *replay)))
-    #     print(msg)
     if settings.set_settings(chat_id, *replay):
         multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
         msg = 'Настройки применены.\n'
@@ -132,10 +117,17 @@ def statistic(bot, update):
                          chat_id=update.message.chat_id))
 
 @run_async
-def process(bot, update):
+def process(bot, update, job_queue):
+
+    print(update.message.chat_id)
+    # bot.send_message(chat_id=update.message.chat_id,
+    #                  text='Setting a timer for 1 minute!')
+
+    # job_queue.run_once(callback_alarm, 10, context=update.message.chat_id)
+    # print(job_queue.jobs())
+
     chat_id = update.message.chat_id
     replay = update.message.text
-
     multiplier = get_multiplier_on_chat_id(chat_id)
     next_task = ''
 
@@ -157,15 +149,6 @@ def process(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg.format(next_task))
 
-def time_out(bot, job):
-    # chat_id = update.message.chat_id
-
-    msg = 'Новый таск'
-    print(msg)
-    # bot.send_message(chat_id=update.message.chat_id,
-    #                  text=msg)
-
-
 
 def get_next_message(multiplier):
     if sum(multiplier.rez) < multiplier._number_steps:
@@ -175,12 +158,13 @@ def get_next_message(multiplier):
         multiplier.reset()
         return msg_grade.format(grade) + msg_continuation + msg_command_list
 
+
 def get_multiplier_on_chat_id(chat_id=None):
     if chat_id in multiplier_dict:
         return multiplier_dict[chat_id]
 
 def get_multiplier(chat_id=None):
-    if not is_multiplier(chat_id):
+    if not is_multiplier:
         set_multiplier(chat_id)
     return multiplier_dict[chat_id]
 
@@ -191,8 +175,18 @@ def is_multiplier(chat_id):
 def set_multiplier(chat_id):
     if is_multiplier:
         multiplier_dict[chat_id] = Multiplier(chat_id=chat_id)
-        # multiplier_dict[chat_id] = Multiplier(chat_id=chat_id, job_queue=job_queue)
 
+
+
+def callback_alarm(bot, job):
+    bot.send_message(chat_id=job.context, text='BEEP')
+
+# def callback_timer(bot, update, job_queue):
+#     print(update.message.chat_id)
+#     bot.send_message(chat_id=update.message.chat_id,
+#                      text='Setting a timer for 1 minute!')
+
+    # job_queue.run_once(callback_alarm, 10, context=update.message.chat_id)
 
 
 def main():
@@ -203,25 +197,15 @@ def main():
     dispatcher.add_handler(CommandHandler("setting", setting))
     dispatcher.add_handler(CommandHandler("statistic", statistic))
     dispatcher.add_handler(MessageHandler(Filters.text, process))
-    # job_queue.run_once(time_out, 10)
+
+    # dispatcher.add_handler(CommandHandler("timer", callback_timer))
+    # dispatcher.add_handler(CommandHandler("timer", callback_timer, pass_job_queue=True))
+
+
 
     # Start the program
-    up.start_polling(timeout=500)
+    up.start_polling()
     up.idle()
 
 if __name__ == '__main__':
     main()
-
-
-
-# Доступные названия настроек:
-# link - стиль передачи ссылки на исходное сообщение
-# caption - стиль передачи подписи к изображению
-# brief - сокращение длинных постов
-#
-# Чтобы получить больше информации, используй команду
-# /setting название_настройки
-# Чтобы установить настройку:
-# /setting название_настройки новое_значение
-# Например:
-# /setting link none
