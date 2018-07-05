@@ -40,7 +40,6 @@ class Multiplier():
 
     def update_input_list(self):
         self._input_list.add(self._input_str)
-        self.set_input_str()
 
     def response(self, replay = None):
         self._step_run_time = self._timeout
